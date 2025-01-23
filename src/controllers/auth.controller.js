@@ -11,7 +11,7 @@ dotenv.config();
 const signup = async(req, res) => {
     const {name, email, mobile, password, confirmPassword} = req.body;
 
-    if (!name || !email || !password){
+    if (!name || !email || !mobile || !password || !confirmPassword) {
         return res.status(400).json({message: "Please fill in all details"});
     }
 
@@ -35,7 +35,7 @@ const signup = async(req, res) => {
         const isMobileRegistered = await User.findOne({mobile : trimmedMobile});
 
         if (isMobileRegistered) {
-            return res.status(400).json({message: "Email already registered"});
+            return res.status(400).json({message: "Mobile already registered"});
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -103,4 +103,94 @@ const login = async (req, res) => {
     }
 };
 
-module.exports = {signup, login}
+const modify = async (req, res) => {
+    const {name, mobile, email} = req.body;
+
+    console.log(req);
+    console.log(req.user);
+    console.log(req.user.id);
+    if(!req.user.id){
+        return res.status(401).json({message: "Unauthorized Access"});
+    }
+
+    try{
+        const user = await User.findById(req.user.id);
+
+        if(!user){
+            return res.status(404).json({message: "User Not Found"});
+        }
+
+        if (name){
+            if ( name === user.name){
+                return res.status(400).json({message: "New and existing name are the same"});
+            }
+
+            user.name = name;
+        }
+
+        if (mobile){
+            if (mobile === user.mobile){
+                return res.status(400).json({message: "New and existing mobile are the same"});
+            }
+
+            doesMobileExist = await User.findOne({mobile: mobile}).exec();
+
+            if(doesMobileExist){
+                return res.status(400).json({message: "Mobile Number is already in use"});
+            }
+
+            user.mobile = mobile;
+        }
+
+        if (email){
+            if (email === user.email){
+                return res.status(400).json({message: "New and existing email are the same"});
+            }
+
+            doesEmailExist = await User.findOne({email: email}).exec();
+
+            if(doesEmailExist){
+                return res.status(400).json({message: "Email is already in use"});
+            }
+
+            user.email = email;
+        }
+
+        await user.save();
+
+        return res.status(200).json({
+            message: "User Details Updated Successfully",
+            user
+        });
+
+    } catch (err){
+        return res.status(500).json({
+            message: "Internal Server Error",
+            error: err
+        })
+    }
+};
+
+const deleteUser = async (req, res) => {
+    if (!req.user.id) {
+        return res.status(401).json({
+            message: "Unauthorized Access"
+        });
+    }
+
+    try{
+        await User.findByIdAndDelete(req.user.id);
+
+        return res.status(200).json({
+            message: "Account Deleted Successfully"
+        });
+
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Failer to delete account.',
+            error: err
+        })
+    }
+};
+
+module.exports = {signup, login, modify, deleteUser};
