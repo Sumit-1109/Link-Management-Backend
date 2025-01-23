@@ -10,6 +10,7 @@ app.use(express.json());
 app.use(cors());
 dotenv.config();
 
+app.use('/api/user', authRoutes);
 
 const PORT = process.env.PORT || 8000;
 
