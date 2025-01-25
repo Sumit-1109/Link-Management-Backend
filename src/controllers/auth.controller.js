@@ -193,4 +193,44 @@ const deleteUser = async (req, res) => {
     }
 };
 
-module.exports = {signup, login, modify, deleteUser};
+const getUserDetails = async (req, res) => {
+
+    const userId = req.user.id;
+
+    if (!userId) {
+        return res.status(401).json({
+            message: "Login !! Get a token man !!"
+        });
+    }
+
+    try{
+        const user = await User.findById(userId);
+
+        if(!user) {
+            return res.status(404).json({
+                message: "User Not Found"
+            });
+        };
+
+        const fullName = user.name.trim().split(' ');
+        const firstName = fullName[0];
+
+        let initials = firstName.charAt(0).toUpperCase();
+        if(fullName.length > 1) {
+            initials += fullName[1].charAt(0).toUpperCase();
+        }
+
+        return res.status(200).json({
+            firstName,
+            initials
+        });
+
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Something is wrong with the universe',
+            error : err.message
+        })
+    }
+}
+
+module.exports = {signup, login, modify, deleteUser, getUserDetails};
