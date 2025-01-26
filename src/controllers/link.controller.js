@@ -53,6 +53,8 @@ const createShortURL = async (req, res) => {
 const getLinks = async (req, res) => {
   try {
 
+    console.log('Query Parameters:', req.query);
+
     const {sortBy, order} = req.query;
     const sortField = sortBy === 'status' ? "status" : "createdAt";
     const sortOrder = order === 'asc' ? 1 : -1;
@@ -68,7 +70,7 @@ const getLinks = async (req, res) => {
     const linkDetails = links.map((link) => ({
       createdAt: link.createdAt.toISOString().split("T")[0],
       originalURL: link.originalURL,
-      shortURL: `${req.protocol}://${req.get("host")}/${link.shortURL}`,
+      shortURL: `${process.env.BASE_URL}/links/${link.shortURL}`, 
       remarks: link.remarks,
       clicks: link.clicks.length,
       status:
@@ -82,7 +84,7 @@ const getLinks = async (req, res) => {
             return sortOrder * a.status.localeCompare(b.status);
         }
 
-        return sortOrder * a.status.localeCompare(b.status);
+        return sortOrder * (new Date(a.createdAt) - new Date(b.createdAt));
     });
 
     return res.status(200).json({
@@ -133,6 +135,7 @@ const redirectToOriginal = async (req, res) => {
     }
 
     res.redirect(link.originalURL);
+
   } catch (err) {
     res.status(500).json({
       message: "Internal Server Error",
