@@ -5,11 +5,10 @@ const authRoutes = require('./routes/auth.route');
 const linkRoutes = require('./routes/link.route');
 const cors = require('cors');
 
-
+dotenv.config();
 const app = express();
 app.use(express.json());
 app.use(cors());
-dotenv.config();
 
 app.use('/api/user', authRoutes);
 app.use('/api/links', linkRoutes);

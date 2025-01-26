@@ -6,12 +6,13 @@ const auth = require('../middlewares/auth.middleware');
 
 router.use(device.capture());
 
-router.post('/shorten', auth, linkController.createShortURL);
+router.post('/create', auth, linkController.createShortURL);
+router.get('/dashboard', auth, linkController.getDashboardLinkDetails);
+router.get('/analytics',auth ,linkController.getLinkAnalytics);
 router.get('/', auth, linkController.getLinks);
-router.get('/:shortURL', linkController.redirectToOriginal);
-router.get('/analytics/:shortURL', linkController.getLinkAnalytics);
 router.put('/edit/:shortURL', auth, linkController.updateLink);
 router.delete('/delete/:shortURL', auth, linkController.deleteLink);
+router.get('/:shortURL', linkController.redirectToOriginal);
 
 
 module.exports = router;
