@@ -28,7 +28,7 @@ const LinkSchema = new mongoose.Schema({
       },
       device: {
         type: String,
-        enum: ["mobile", "desktop", "tablet"],
+        enum: ["Mobile", "Desktop", "Tablet"],
       },
     },
   ],

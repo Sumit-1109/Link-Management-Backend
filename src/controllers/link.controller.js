@@ -40,7 +40,7 @@ const createShortURL = async (req, res) => {
 
     return res.status(201).json({
       message: "Short URL created successfully !!",
-      shortURL: `${req.protocol}://${req.get("host")}/${shortURL}`,
+      shortURL: `${process.env.BASE_URL}/links/${shortURL}`, 
     });
   } catch (err) {
     console.error(err);
@@ -53,24 +53,35 @@ const createShortURL = async (req, res) => {
 const getLinks = async (req, res) => {
   try {
 
-    console.log('Query Parameters:', req.query);
-
-    const {sortBy, order} = req.query;
+    const { page = 1, limit = 10, sortBy = "createdAt", order = "asc" } = req.query;
     const sortField = sortBy === 'status' ? "status" : "createdAt";
     const sortOrder = order === 'asc' ? 1 : -1;
 
+    const totalLinks = await Link.countDocuments({
+        createdBy : req.user.id
+    });
+
     const links = await Link.find({
       createdBy: req.user.id,
-    });
+    }).sort({ [sortField]: sortOrder })
+    .skip((page - 1) * limit)
+    .limit(parseInt(limit));
 
     if (!links || links.length === 0) {
       return res.status(404).json({ message: "No links found. Shorten some!" });
     }
 
     const linkDetails = links.map((link) => ({
-      createdAt: link.createdAt.toISOString().split("T")[0],
+      id: link._id,
+      createdAt: new Date(link.createdAt).toLocaleString('en-US', {
+        month: 'short',
+        day: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }),
       originalURL: link.originalURL,
-      shortURL: `${process.env.BASE_URL}/links/${link.shortURL}`, 
+      shortURL: `${process.env.BASE_URL}/${link.shortURL}`, 
       remarks: link.remarks,
       clicks: link.clicks.length,
       status:
@@ -79,65 +90,13 @@ const getLinks = async (req, res) => {
           : "Active",
     }));
 
-    const sortedLinks = linkDetails.sort((a,b) => {
-        if (sortField === "status") {
-            return sortOrder * a.status.localeCompare(b.status);
-        }
-
-        return sortOrder * (new Date(a.createdAt) - new Date(b.createdAt));
-    });
-
     return res.status(200).json({
-      links: sortedLinks,
+      links: linkDetails,
+      totalPages: Math.ceil(totalLinks/limit),
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
-      message: "Internal Server Error",
-      error: err,
-    });
-  }
-};
-
-const redirectToOriginal = async (req, res) => {
-  try {
-    const { shortURL } = req.params;
-
-    const link = await Link.findOne({ shortURL });
-
-    if (link.expirationDate && new Date() > link.expirationDate) {
-      return res.status(410).json({ message: "This link is no more :(" });
-    }
-
-    if (!link) {
-      return res.status(404).json({ message: "This link is no more :(" });
-    }
-
-    const clickData = {
-      ip: req.ip,
-      timestamp: new Date(),
-      device: req.device.type,
-    };
-
-    const updatedLink = await Link.findOneAndUpdate(
-      { shortURL },
-      {
-        $inc: { totalClicks: 1 },
-        $push: { clicks: clickData },
-      },
-      {
-        new: true,
-      }
-    );
-
-    if (!updatedLink) {
-      return res.status(500).json({ message: "Failed to update" });
-    }
-
-    res.redirect(link.originalURL);
-
-  } catch (err) {
-    res.status(500).json({
       message: "Internal Server Error",
       error: err,
     });
@@ -179,23 +138,22 @@ const getLinkAnalytics = async (req, res) => {
 };
 
 const updateLink = async (req, res) => {
-  const { shortURL } = req.params;
-  const { originalURL, expirationDate, remarks } = req.body;
+  const { id } = req.params;
+  const { expirationDate, remarks } = req.body;
 
   try {
-    const link = await Link.findOne({ shortURL });
+    const link = await Link.findById(id);
 
     if (!link) {
       return res.status(404).json({ message: "Link not found" });
     }
 
-    link.originalURL = originalURL || link.originalURL;
-    link.expirationDate = expirationDate || link.expirationDate;
-    link.remarks = remarks || link.remarks;
+    link.expirationDate = expirationDate;
+    link.remarks = remarks;
 
     await link.save();
 
-    return res.status(200).json({ message: "Link updated successfully" });
+    return res.status(200).json({ message: "Link updated successfully", link });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -203,7 +161,18 @@ const updateLink = async (req, res) => {
 };
 
 const getDashboardLinkDetails = async (req, res) => {
+
+    const userId = req.user.id;
+
+    if(!userId) {
+        return res.status(400).json({
+            message: "User Id not found !!"
+        });
+    };
+
+
   try {
+
     const links = await Link.find({
       createdBy: req.user.id,
     });
@@ -217,9 +186,9 @@ const getDashboardLinkDetails = async (req, res) => {
     let totalClicks = 0;
     let dateAnalytics = {};
     let deviceAnalytics = {
-      mobile: 0,
-      desktop: 0,
-      tablet: 0,
+      Mobile: 0,
+      Desktop: 0,
+      Tablet: 0,
     };
 
     links.forEach((link) => {
@@ -248,6 +217,29 @@ const getDashboardLinkDetails = async (req, res) => {
   }
 };
 
+const getLinkDetails = async (req, res) => {
+
+  const {id} = req.params;
+
+  try{
+    const linkDetails = await Link.findById(id);
+
+    if (!linkDetails) {
+      return res.status(404).json({ message: "Link not found" });
+    }
+
+    return res.status(200).json({
+      linkDetails : linkDetails,
+    });
+  } catch (err) {
+    console.log(err);
+    return res.status(500).json({
+      message : "Something is wrong with the universe !!"
+    })
+  }
+
+}
+
 const deleteLink = async (req, res) => {
   const { shortURL } = req.params;
 
@@ -261,7 +253,7 @@ const deleteLink = async (req, res) => {
     return res.status(200).json({ message: "Link deleted successfully" });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Internal Server Error" });
+    return res.status(500).json({ message: "Internal Server Error", error: err });
   }
 };
 
@@ -269,8 +261,8 @@ module.exports = {
   createShortURL,
   getLinks,
   getLinkAnalytics,
-  redirectToOriginal,
   updateLink,
   deleteLink,
   getDashboardLinkDetails,
+  getLinkDetails
 };
