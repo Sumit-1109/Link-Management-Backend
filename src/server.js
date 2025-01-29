@@ -5,6 +5,8 @@ const authRoutes = require('./routes/auth.route');
 const linkRoutes = require('./routes/link.route');
 const redirectRoute = require('./routes/redirectRoute');
 const cors = require('cors');
+const userAgent = require("express-useragent");
+const deviceType = require("./middlewares/deviceType");
 
 dotenv.config();
 const app = express();
@@ -14,9 +16,14 @@ app.use('*', cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
 }));
 
+
+app.use(userAgent.express());
+app.use(deviceType);
+
 app.use('/api/user', authRoutes);
 app.use('/api/links', linkRoutes);
 app.use('/api', redirectRoute);
+
 
 const PORT = process.env.PORT || 8000;
 

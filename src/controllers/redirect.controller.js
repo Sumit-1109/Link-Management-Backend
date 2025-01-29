@@ -2,7 +2,7 @@ const Link = require("../schema/Link.schema");
 const express = require("express");
 const dotenv = require("dotenv");
 const device = require("express-device");
-
+const userAgent = require("express-useragent");
 
 dotenv.config();
 
@@ -27,10 +27,14 @@ const redirectToOriginal = async (req, res) => {
       return res.status(404).json({ message: "This link is no more :(" });
     }
 
+    const deviceType = req.clientInfo.device;
+    const browserName = req.clientInfo.browser;
+
     const clickData = {
       ip: req.ip,
       timestamp: new Date(),
-      device: req.device.type,
+      device: deviceType,
+      browser: browserName,
     };
 
     const updatedLink = await Link.findOneAndUpdate(

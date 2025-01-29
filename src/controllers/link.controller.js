@@ -105,13 +105,23 @@ const getLinks = async (req, res) => {
 
 const getLinkAnalytics = async (req, res) => {
   try {
+
+    if(!req.user.id){
+      return res.status(401).json({message: "Unauthorized"});
+    }
+
+    const { page = 1, limit = 10, sortBy = "timestamp", order = "desc" } = req.query;
     const sortOrder = req.query.order === "asc" ? 1 : -1;
 
     const links = await Link.find({
-      createdBy: req.user._id,
-    }).sort({
-      "clicks.timestamp": sortOrder,
+      createdBy: req.user.id,
     });
+
+    if(!links.length) {
+      return res.status(404).json({
+        message: "No links found. Shorten some!",
+      })
+    }
 
     let analyticsData = [];
 
@@ -120,15 +130,23 @@ const getLinkAnalytics = async (req, res) => {
         analyticsData.push({
           timestamp: click.timestamp,
           originalURL: link.originalURL,
-          shortURL: link.shortURL,
+          shortURL: `${process.env.BASE_URL}/${link.shortURL}`, 
           ip: click.ip,
           device: click.device,
+          browser: click.browser
         });
       });
     });
 
+    analyticsData.sort((a, b) => sortOrder * (new Date(b.timestamp) - new Date(a.timestamp)));
+
+    const startIndex = (page - 1) * limit;
+    const paginatedData = analyticsData.slice(startIndex, startIndex + parseInt(limit));
+
     res.status(200).json({
-      analytics: analyticsData,
+      analytics: paginatedData,
+      totalEntries: analyticsData.length,
+      totalPages: Math.ceil(analyticsData.length/limit)
     });
   } catch (err) {
     res.status(500).json({
@@ -136,6 +154,7 @@ const getLinkAnalytics = async (req, res) => {
     });
   }
 };
+
 
 const updateLink = async (req, res) => {
   const { id } = req.params;
@@ -241,10 +260,14 @@ const getLinkDetails = async (req, res) => {
 }
 
 const deleteLink = async (req, res) => {
-  const { shortURL } = req.params;
+  const { id } = req.params;
+
+  if(!id) {
+    return res.status(400).json({message: "Link id is required" });
+  }
 
   try {
-    const link = await Link.findOneAndDelete({ shortURL });
+    const link = await Link.findByIdAndDelete(id);
 
     if (!link) {
       return res.status(404).json({ message: "Link not found" });

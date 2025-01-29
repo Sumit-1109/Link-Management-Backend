@@ -1,17 +1,27 @@
+const device = require("express-device");
+const userAgent = require("express-useragent");
+
 const deviceType = (req, res, next) => {
+
+  let device = "Unknown";
+
   if (req.device && req.device.type) {
     switch (req.device.type) {
       case "phone":
-        req.device.type = "Mobile";
+        device = "Mobile";
         break;
       case "desktop":
-        req.device.type = "Desktop";
+        device = "Desktop";
         break;
       case "tablet":
-        req.device.type = "Tablet";
+        device = "Tablet";
         break;
     }
   }
+
+  const browser = req.useragent.browser || "Unknown";
+
+  req.clientInfo = {device, browser};
 
   next();
 };

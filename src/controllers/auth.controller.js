@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const auth = require('../middlewares/auth.middleware');
 const User = require('../schema/User.schema');
+const Links = require('../schema/Link.schema');
 
 dotenv.config();
 
@@ -106,9 +107,6 @@ const login = async (req, res) => {
 const modify = async (req, res) => {
     const {name, mobile, email} = req.body;
 
-    console.log(req);
-    console.log(req.user);
-    console.log(req.user.id);
     if(!req.user.id){
         return res.status(401).json({message: "Unauthorized Access"});
     }
@@ -120,47 +118,22 @@ const modify = async (req, res) => {
             return res.status(404).json({message: "User Not Found"});
         }
 
-        if (name){
-            if ( name === user.name){
-                return res.status(400).json({message: "New and existing name are the same"});
-            }
+        const emailChanged= user.email !== email;
 
-            user.name = name;
-        }
-
-        if (mobile){
-            if (mobile === user.mobile){
-                return res.status(400).json({message: "New and existing mobile are the same"});
-            }
-
-            doesMobileExist = await User.findOne({mobile: mobile}).exec();
-
-            if(doesMobileExist){
-                return res.status(400).json({message: "Mobile Number is already in use"});
-            }
-
-            user.mobile = mobile;
-        }
-
-        if (email){
-            if (email === user.email){
-                return res.status(400).json({message: "New and existing email are the same"});
-            }
-
-            doesEmailExist = await User.findOne({email: email}).exec();
-
-            if(doesEmailExist){
-                return res.status(400).json({message: "Email is already in use"});
-            }
-
-            user.email = email;
-        }
+        user.name = name,
+        user.mobile = mobile,
+        user.email = email;
 
         await user.save();
 
         return res.status(200).json({
             message: "User Details Updated Successfully",
-            user
+            emailChanged,
+            userDetails: {
+                name: user.name,
+                email: user.email,
+                mobile: user.mobile,
+            },
         });
 
     } catch (err){
@@ -179,10 +152,15 @@ const deleteUser = async (req, res) => {
     }
 
     try{
+
+        await Links.deleteMany({
+            createdBy: req.user.id
+        });
+
         await User.findByIdAndDelete(req.user.id);
 
         return res.status(200).json({
-            message: "Account Deleted Successfully"
+            message: `Bye Bye`
         });
 
     } catch (err) {
@@ -194,6 +172,36 @@ const deleteUser = async (req, res) => {
 };
 
 const getUserDetails = async (req, res) => {
+
+    const userId = req.user.id;
+
+    if (!userId) {
+        return res.status(401).json({
+            message: "Login !! Get a token man !!"
+        });
+    }
+
+    try{
+
+        const user = await User.findById(userId);
+
+        if(!user) {
+            return res.status(404).json({
+                message: "User Not Found"
+            });
+        };
+
+        return res.status(200).json({user});
+
+    } catch (err) {
+        return res.status(500).json({
+            message: 'Something is wrong with the universe',
+            error : err.message
+        })
+    }
+}
+
+const getUserName = async (req, res) => {
 
     const userId = req.user.id;
 
@@ -233,4 +241,4 @@ const getUserDetails = async (req, res) => {
     }
 }
 
-module.exports = {signup, login, modify, deleteUser, getUserDetails};
+module.exports = {signup, login, modify, deleteUser, getUserDetails, getUserName};

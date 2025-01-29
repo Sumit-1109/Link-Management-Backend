@@ -30,6 +30,9 @@ const LinkSchema = new mongoose.Schema({
         type: String,
         enum: ["Mobile", "Desktop", "Tablet"],
       },
+      browser: {
+        type: String,
+      }
     },
   ],
   totalClicks: {
