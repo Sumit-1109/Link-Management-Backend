@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const device = require("express-device");
 const crypto = require("crypto");
 const validator = require("validator");
+const BASE_URL= 'https://link-management-backend.onrender.com';
 
 dotenv.config();
 
@@ -119,7 +120,7 @@ const getLinks = async (req, res) => {
         minute: '2-digit',
       }),
       originalURL: link.originalURL,
-      shortURL: `${process.env.BASE_URL}/${link.shortURL}`, 
+      shortURL: `${BASE_URL}/${link.shortURL}`, 
       remarks: link.remarks,
       clicks: link.clicks.length,
       status:
@@ -169,7 +170,7 @@ const getLinkAnalytics = async (req, res) => {
         analyticsData.push({
           timestamp: click.timestamp,
           originalURL: link.originalURL,
-          shortURL: `${process.env.BASE_URL}/${link.shortURL}`, 
+          shortURL: `${BASE_URL}/${link.shortURL}`, 
           ip: click.ip,
           device: click.device,
           browser: click.browser
