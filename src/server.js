@@ -4,6 +4,7 @@ const connectDB = require('./config/connectDB')
 const authRoutes = require('./routes/auth.route');
 const linkRoutes = require('./routes/link.route');
 const redirectRoute = require('./routes/redirectRoute');
+
 const cors = require('cors');
 const userAgent = require("express-useragent");
 const deviceType = require("./middlewares/deviceType");
@@ -11,8 +12,9 @@ const deviceType = require("./middlewares/deviceType");
 dotenv.config();
 const app = express();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use('*', cors({
-    origin: 'https://link-management-frontend.vercel.app/',
+    origin: 'https://link-management-frontend.vercel.app',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
