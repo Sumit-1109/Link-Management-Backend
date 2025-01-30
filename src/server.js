@@ -26,7 +26,7 @@ app.use(deviceType);
 
 app.use('/api/user', authRoutes);
 app.use('/api/links', linkRoutes);
-app.use('/api', redirectRoute);
+app.use('/', redirectRoute);
 
 
 const PORT = process.env.PORT || 8000;

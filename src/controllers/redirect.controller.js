@@ -8,7 +8,6 @@ dotenv.config();
 
 const redirectToOriginal = async (req, res) => {
 
-
     const { shortURL } = req.params;
 
     if(!shortURL) {
@@ -18,13 +17,13 @@ const redirectToOriginal = async (req, res) => {
   try {
     const link = await Link.findOne({ shortURL });
 
+    if (!link) {
+      console.log(`Link not found for shortURL: ${shortURL}`);
+    return res.status(404).json({ message: "This link is no more :(" });
+  }
+
     if (link.expirationDate && new Date() > link.expirationDate) {
       return res.status(410).json({ message: "This link is no more :(" });
-    }
-
-    if (!link) {
-        console.log(`Link not found for shortURL: ${shortURL}`);
-      return res.status(404).json({ message: "This link is no more :(" });
     }
 
     const deviceType = req.clientInfo.device;
