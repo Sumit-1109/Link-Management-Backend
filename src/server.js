@@ -12,8 +12,10 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 app.use('*', cors({
-    origin: '*',
+    origin: 'https://link-management-frontend.vercel.app/',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
 }));
 
 

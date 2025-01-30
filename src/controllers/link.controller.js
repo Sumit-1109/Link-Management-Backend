@@ -8,14 +8,37 @@ const validator = require("validator");
 dotenv.config();
 
 const createShortURL = async (req, res) => {
-  const { originalURL, expirationDate, remarks } = req.body;
+  const { originalURL, expirationDate, remarks, isExpiration } = req.body;
+
+  console.log(`Expiration Date: ${!expirationDate} && ${isExpiration}`);
 
   if (!originalURL) {
-    return res.status(400).json({ message: "Destination is required !!" });
+    return res.status(400).json({ field: 'originalURL' , message: "Where to ?" });
   }
 
   if (!validator.isURL(originalURL)) {
-    return res.status(400).json({ message: "Invalid URL format" });
+    return res.status(400).json({field: 'originalURL', message: "Link Looks Odd" });
+  }
+
+  if(!remarks) {
+    return res.status(400).json({
+      field: 'remarks',
+      message: "Please add a remark",
+    })
+  }
+
+  if(isExpiration && !expirationDate) {
+    return res.status(400).json({
+      field: 'expirationDate',
+      message: "No expiration date provided !!",
+    })
+  }
+
+  if(expirationDate && new Date(expirationDate) <= new date()){
+    return res.status(400).json({
+      field: 'expirationDate',
+      message: "Future Time Please"
+    });
   }
 
   try {
@@ -39,13 +62,13 @@ const createShortURL = async (req, res) => {
     await newLink.save();
 
     return res.status(201).json({
-      message: "Short URL created successfully !!",
-      shortURL: `${process.env.BASE_URL}/links/${shortURL}`, 
+      message: "Shortened & Snappy",
+      shortURL: `${process.env.BASE_URL}/${shortURL}`, 
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
-      message: "Internal Server Error",
+      message: "Server took a nap",
     });
   }
 };
@@ -53,22 +76,37 @@ const createShortURL = async (req, res) => {
 const getLinks = async (req, res) => {
   try {
 
-    const { page = 1, limit = 10, sortBy = "createdAt", order = "asc" } = req.query;
+    const { q = "" ,page = 1, limit = 10, sortBy = "createdAt", order = "asc" } = req.query;
     const sortField = sortBy === 'status' ? "status" : "createdAt";
     const sortOrder = order === 'asc' ? 1 : -1;
+
+    const query = q
+      ? {
+          $or: [
+            { originalURL: { $regex: q, $options: "i" } }, 
+            { remarks: { $regex: q, $options: "i" } }
+          ],
+          createdBy: req.user.id,
+        }
+      : { createdBy: req.user.id };
 
     const totalLinks = await Link.countDocuments({
         createdBy : req.user.id
     });
 
-    const links = await Link.find({
-      createdBy: req.user.id,
-    }).sort({ [sortField]: sortOrder })
-    .skip((page - 1) * limit)
-    .limit(parseInt(limit));
+  
 
-    if (!links || links.length === 0) {
-      return res.status(404).json({ message: "No links found. Shorten some!" });
+    const links = await Link.find(query).
+    sort({
+      [sortField] : sortOrder
+    }).skip((page - 1) * limit).limit(parseInt(limit));
+
+    if(q && !links){
+      return res.status(404).json({ message: "Nothing of that sort" });
+    }
+
+    if (!q && (!links || links.length === 0)) {
+      return res.status(404).json({ message: "Oops!! Nothing to see" });
     }
 
     const linkDetails = links.map((link) => ({
@@ -93,11 +131,12 @@ const getLinks = async (req, res) => {
     return res.status(200).json({
       links: linkDetails,
       totalPages: Math.ceil(totalLinks/limit),
+      message: 'Success'
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
-      message: "Internal Server Error",
+      message: "Server took a nap !!",
       error: err,
     });
   }
@@ -107,7 +146,7 @@ const getLinkAnalytics = async (req, res) => {
   try {
 
     if(!req.user.id){
-      return res.status(401).json({message: "Unauthorized"});
+      return res.status(401).json({message: "Get a token !!"});
     }
 
     const { page = 1, limit = 10, sortBy = "timestamp", order = "desc" } = req.query;
@@ -119,7 +158,7 @@ const getLinkAnalytics = async (req, res) => {
 
     if(!links.length) {
       return res.status(404).json({
-        message: "No links found. Shorten some!",
+        message: "Oops!! Nothing to see",
       })
     }
 
@@ -138,7 +177,7 @@ const getLinkAnalytics = async (req, res) => {
       });
     });
 
-    analyticsData.sort((a, b) => sortOrder * (new Date(b.timestamp) - new Date(a.timestamp)));
+    analyticsData.sort((a, b) => sortOrder * (new Date(a.timestamp) - new Date(b.timestamp)));
 
     const startIndex = (page - 1) * limit;
     const paginatedData = analyticsData.slice(startIndex, startIndex + parseInt(limit));
@@ -150,32 +189,59 @@ const getLinkAnalytics = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({
-      error: "Internal Server Error",
+      error: "Server took a nap !!",
     });
   }
 };
 
-
 const updateLink = async (req, res) => {
   const { id } = req.params;
-  const { expirationDate, remarks } = req.body;
+  const { originalURL ,expirationDate, remarks, isExpiration } = req.body;
+
+  console.log(`Expiration Date: ${!expirationDate} && ${isExpiration}`);
+
+  if (!validator.isURL(originalURL)) {
+    return res.status(400).json({field: 'originalURL', message: "Link Looks Odd" });
+  }
+
+  if(!remarks) {
+    return res.status(400).json({
+      field: 'remarks',
+      message: "Please add a remark",
+    })
+  }
+
+  if( isExpiration && !expirationDate) {
+    return res.status(400).json({
+      field: 'expirationDate',
+      message: "No expiration date provided !!",
+    })
+  }
+
+  if(expirationDate && new Date(expirationDate) <= new Date()){
+    return res.status(400).json({
+      field: 'expirationDate',
+      message: "Future Time Please"
+    });
+  }
 
   try {
     const link = await Link.findById(id);
 
     if (!link) {
-      return res.status(404).json({ message: "Link not found" });
+      return res.status(404).json({ message: "Link's gone Rouge !!" });
     }
 
+    link.originalURL = originalURL;
     link.expirationDate = expirationDate;
     link.remarks = remarks;
 
     await link.save();
 
-    return res.status(200).json({ message: "Link updated successfully", link });
+    return res.status(200).json({ message: "Link Locked and Reloaded", link });
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ message: "Internal Server Error" });
+    return res.status(500).json({ message: "Server took a nap" });
   }
 };
 
@@ -185,7 +251,7 @@ const getDashboardLinkDetails = async (req, res) => {
 
     if(!userId) {
         return res.status(400).json({
-            message: "User Id not found !!"
+            message: "ID-n't Exist"
         });
     };
 
@@ -198,7 +264,7 @@ const getDashboardLinkDetails = async (req, res) => {
 
     if (!links || links.length === 0) {
       return res.status(404).json({
-        message: "No links found, create some !!",
+        message: "Oops!! Nothing to see",
       });
     }
 
@@ -226,12 +292,12 @@ const getDashboardLinkDetails = async (req, res) => {
       totalClicks,
       dateAnalytics,
       deviceAnalytics,
-      message: "Successfull",
+      message: "Hoorahh !!",
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
-      message: "Something is wrong in this universe !!",
+      message: "Server took a nap",
     });
   }
 };
@@ -244,7 +310,7 @@ const getLinkDetails = async (req, res) => {
     const linkDetails = await Link.findById(id);
 
     if (!linkDetails) {
-      return res.status(404).json({ message: "Link not found" });
+      return res.status(404).json({ message: "Link's gone Rouge'" });
     }
 
     return res.status(200).json({
@@ -253,7 +319,7 @@ const getLinkDetails = async (req, res) => {
   } catch (err) {
     console.log(err);
     return res.status(500).json({
-      message : "Something is wrong with the universe !!"
+      message : "Server took a nap"
     })
   }
 
@@ -263,20 +329,24 @@ const deleteLink = async (req, res) => {
   const { id } = req.params;
 
   if(!id) {
-    return res.status(400).json({message: "Link id is required" });
+    return res.status(400).json({message: "Link ID, Please !" });
   }
 
   try {
-    const link = await Link.findByIdAndDelete(id);
+    const link = await Link.findById(id);
 
     if (!link) {
-      return res.status(404).json({ message: "Link not found" });
+      return res.status(404).json({ message: "Link's gone Rouge" });
     }
 
-    return res.status(200).json({ message: "Link deleted successfully" });
+    await Link.findByIdAndDelete(id);
+
+    return res.status(200).json({ message: "Link's gone, job's done" });
+
   } catch (err) {
+    
     console.error(err);
-    return res.status(500).json({ message: "Internal Server Error", error: err });
+    return res.status(500).json({ message: "Server took a nap", error: err });
   }
 };
 

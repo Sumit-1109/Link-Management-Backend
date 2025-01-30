@@ -13,7 +13,7 @@ const signup = async(req, res) => {
     const {name, email, mobile, password, confirmPassword} = req.body;
 
     if (!name || !email || !mobile || !password || !confirmPassword) {
-        return res.status(400).json({message: "Please fill in all details"});
+        return res.status(400).json({message: "Don't Leave Us Guessing"});
     }
 
     const trimmedName = name.trim();
@@ -23,20 +23,20 @@ const signup = async(req, res) => {
     const trimmedConfirmPassword = confirmPassword.trim();
 
     if(trimmedPassword !== trimmedConfirmPassword) {
-        return res.status(400).json({message: "Enter same password in both fields"});
+        return res.status(401).json({message: "Password twin trouble"});
     }
 
     try{
         const isEmailRegistered = await User.findOne({email : trimmedEmail});
 
         if (isEmailRegistered) {
-            return res.status(400).json({message: "Email already registered"});
+            return res.status(400).json({message: "Email's taken"});
         }
 
         const isMobileRegistered = await User.findOne({mobile : trimmedMobile});
 
         if (isMobileRegistered) {
-            return res.status(400).json({message: "Mobile already registered"});
+            return res.status(400).json({message: "Mobile's taken"});
         }
 
         const salt = await bcrypt.genSalt(10);
@@ -51,11 +51,11 @@ const signup = async(req, res) => {
 
         await newUser.save();
 
-        return res.status(201).json({message: "User Created Successfully !!"});
+        return res.status(201).json({message: "Welcome Aboard"});
     } catch (err) {
         console.log(err);
-        return res.status(400).json({
-            message: "Error Occured while creating user"
+        return res.status(500).json({
+            message: "User creation Fiasco"
         })
     }
 };
@@ -64,20 +64,20 @@ const login = async (req, res) => {
     const {email, password} = req.body;
 
     if(!email || !password) {
-        return res.status(400).json({ message: "Please enter email and password" });
+        return res.status(400).json({ message: "Don't leave us guessing" });
     }
 
     try{
         const user = await User.findOne({email});
 
         if(!user){
-            return res.status(401).json({message: "Invalid Credentials"});    
+            return res.status(401).json({message: "Sus!! Wrong combo!!"});    
         };
 
         const isValidPassword = await bcrypt.compare(password, user.password);
 
         if (!isValidPassword) {
-            return res.status(401).json({message: "Invalid Credentials"});
+            return res.status(401).json({message: "Sus!! Wrong combo!!"});
         };
 
         const payload = {
@@ -90,7 +90,7 @@ const login = async (req, res) => {
         });
 
         return res.status(200).json({
-            message: 'Login Successfull',
+            message: "You're in",
             token,
             user: {
                 id: user._id,
@@ -100,7 +100,7 @@ const login = async (req, res) => {
 
     } catch (err) {
         console.log(err)
-        return res.status(500).json({message: "Internal Server Error"});
+        return res.status(500).json({message: "Server took a nap"});
     }
 };
 
@@ -108,17 +108,18 @@ const modify = async (req, res) => {
     const {name, mobile, email} = req.body;
 
     if(!req.user.id){
-        return res.status(401).json({message: "Unauthorized Access"});
+        return res.status(401).json({message: "Imposter alert"});
     }
 
     try{
         const user = await User.findById(req.user.id);
 
         if(!user){
-            return res.status(404).json({message: "User Not Found"});
+            return res.status(404).json({message: "User Missing!!"});
         }
 
         const emailChanged= user.email !== email;
+        const nameChanged = user.name !== name;
 
         user.name = name,
         user.mobile = mobile,
@@ -127,8 +128,9 @@ const modify = async (req, res) => {
         await user.save();
 
         return res.status(200).json({
-            message: "User Details Updated Successfully",
+            message: "User Makeover Done",
             emailChanged,
+            nameChanged,
             userDetails: {
                 name: user.name,
                 email: user.email,
@@ -138,7 +140,7 @@ const modify = async (req, res) => {
 
     } catch (err){
         return res.status(500).json({
-            message: "Internal Server Error",
+            message: "Server took a nap",
             error: err
         })
     }
@@ -147,7 +149,7 @@ const modify = async (req, res) => {
 const deleteUser = async (req, res) => {
     if (!req.user.id) {
         return res.status(401).json({
-            message: "Unauthorized Access"
+            message: "Imposter Alert"
         });
     }
 
@@ -160,12 +162,12 @@ const deleteUser = async (req, res) => {
         await User.findByIdAndDelete(req.user.id);
 
         return res.status(200).json({
-            message: `Bye Bye`
+            message: `Adios`
         });
 
     } catch (err) {
         return res.status(500).json({
-            message: 'Failer to delete account.',
+            message: 'Deletion Derailed',
             error: err
         })
     }
@@ -187,7 +189,7 @@ const getUserDetails = async (req, res) => {
 
         if(!user) {
             return res.status(404).json({
-                message: "User Not Found"
+                message: "User Who ?"
             });
         };
 
@@ -195,7 +197,7 @@ const getUserDetails = async (req, res) => {
 
     } catch (err) {
         return res.status(500).json({
-            message: 'Something is wrong with the universe',
+            message: 'Server is taking a nap',
             error : err.message
         })
     }
@@ -216,7 +218,7 @@ const getUserName = async (req, res) => {
 
         if(!user) {
             return res.status(404).json({
-                message: "User Not Found"
+                message: "User Who ?"
             });
         };
 
@@ -235,7 +237,7 @@ const getUserName = async (req, res) => {
 
     } catch (err) {
         return res.status(500).json({
-            message: 'Something is wrong with the universe',
+            message: 'Server is taking a nap',
             error : err.message
         })
     }
