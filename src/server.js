@@ -23,10 +23,10 @@ app.use('*', cors({
 
 app.use(userAgent.express());
 app.use(deviceType);
-
+app.use('/', redirectRoute);
 app.use('/api/user', authRoutes);
 app.use('/api/links', linkRoutes);
-app.use('/', redirectRoute);
+
 
 
 const PORT = process.env.PORT || 8000;
