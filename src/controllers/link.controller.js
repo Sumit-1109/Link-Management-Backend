@@ -153,7 +153,7 @@ const getLinkAnalytics = async (req, res) => {
     }
 
     const { page = 1, limit = 10, sortBy = "timestamp", order = "desc" } = req.query;
-    
+
     const sortOrder = order === "asc" ? 1 : -1;
 
 
@@ -172,7 +172,13 @@ const getLinkAnalytics = async (req, res) => {
     links.forEach((link) => {
       link.clicks.forEach((click) => {
         analyticsData.push({
-          timestamp: click.timestamp,
+          timestamp: new Date(click.timestamp).toLocaleString('en-US', {
+            month: 'short',
+            day: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
           originalURL: link.originalURL,
           shortURL: `${BASE_URL}/${link.shortURL}`, 
           ip: click.ip,
@@ -202,8 +208,6 @@ const getLinkAnalytics = async (req, res) => {
 const updateLink = async (req, res) => {
   const { id } = req.params;
   const { originalURL ,expirationDate, remarks, isExpiration } = req.body;
-
-  console.log(`Expiration Date: ${!expirationDate} && ${isExpiration}`);
 
   if (!validator.isURL(originalURL)) {
     return res.status(400).json({field: 'originalURL', message: "Link Looks Odd" });

@@ -64,5 +64,6 @@ LinkSchema.pre("save", function (next) {
 });
 
 LinkSchema.index({ shortURL: 1, createdBy: 1 });
+LinkSchema.index({ createdBy: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Link", LinkSchema);
