@@ -28,19 +28,21 @@ const createShortURL = async (req, res) => {
     })
   }
 
-  if(isExpiration && !expirationDate) {
-    return res.status(400).json({
-      field: 'expirationDate',
-      message: "No expiration date provided !!",
-    })
+  if (isExpiration) {
+    if (!expirationDate) {
+      return res.status(400).json({
+        field: 'expirationDate',
+        message: "No expiration date provided !!",
+      });
+    }
+    if (new Date(expirationDate) <= new Date()) {
+      return res.status(400).json({
+        field: 'expirationDate',
+        message: "Future Time Please"
+      });
+    }
   }
-
-  if(expirationDate && new Date(expirationDate) <= new date()){
-    return res.status(400).json({
-      field: 'expirationDate',
-      message: "Future Time Please"
-    });
-  }
+  
 
   try {
     let shortURL;
@@ -64,7 +66,7 @@ const createShortURL = async (req, res) => {
 
     return res.status(201).json({
       message: "Shortened & Snappy",
-      shortURL: `${process.env.BASE_URL}/${shortURL}`, 
+      shortURL: `${BASE_URL}/${shortURL}`, 
     });
   } catch (err) {
     console.error(err);
@@ -100,9 +102,9 @@ const getLinks = async (req, res) => {
     const links = await Link.find(query).
     sort({
       [sortField] : sortOrder
-    }).skip((page - 1) * limit).limit(parseInt(limit));
+    }).skip((page - 1) * limit).limit(parseInt(limit) || 10);
 
-    if(q && !links){
+    if(q && links.length === 0){
       return res.status(404).json({ message: "Nothing of that sort" });
     }
 
@@ -151,7 +153,9 @@ const getLinkAnalytics = async (req, res) => {
     }
 
     const { page = 1, limit = 10, sortBy = "timestamp", order = "desc" } = req.query;
-    const sortOrder = req.query.order === "asc" ? 1 : -1;
+    
+    const sortOrder = order === "asc" ? 1 : -1;
+
 
     const links = await Link.find({
       createdBy: req.user.id,
