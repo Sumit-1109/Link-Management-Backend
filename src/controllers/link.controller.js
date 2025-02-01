@@ -188,7 +188,6 @@ const getLinkAnalytics = async (req, res) => {
 
 
     links.forEach((link) => {
-      // console.log(link.clicks);
       link.clicks.forEach((click) => {
         analyticsData.push({
           timestamp: new Date(click.timestamp).toLocaleString('en-IN', {

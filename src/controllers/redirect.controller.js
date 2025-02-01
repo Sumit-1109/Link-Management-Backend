@@ -29,16 +29,12 @@ const redirectToOriginal = async (req, res) => {
 
     const {device, userDevice, browser, ip} = req.clientInfo;
 
-    console.log('client info', req.clientInfo)
-
     const clickData = {
       ip: ip,
       timestamp: new Date(),
       device: device,
       userDevice: userDevice,
     };
-
-    console.log('Click Data', clickData);
 
     const updatedLink = await Link.findOneAndUpdate(
       { shortURL },
