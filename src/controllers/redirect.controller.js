@@ -26,14 +26,19 @@ const redirectToOriginal = async (req, res) => {
       return res.status(410).json({ message: "This link is no more :(" });
     }
 
-    const {device, os, browser, ip} = req.clientInfo;
+
+    const {device, userDevice, browser, ip} = req.clientInfo;
+
+    console.log('client info', req.clientInfo)
 
     const clickData = {
       ip: ip,
       timestamp: new Date(),
       device: device,
-      os: os,
+      userDevice: userDevice,
     };
+
+    console.log('Click Data', clickData);
 
     const updatedLink = await Link.findOneAndUpdate(
       { shortURL },

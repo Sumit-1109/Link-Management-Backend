@@ -7,6 +7,6 @@ const deviceType = require('../middlewares/deviceType');
 router.use(device.capture());
 router.use(deviceType);
 
-router.get('/:shortURL', redirectController.redirectToOriginal);
+router.get('/:shortURL', deviceType ,redirectController.redirectToOriginal);
 
 module.exports = router;
