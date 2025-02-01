@@ -36,6 +36,8 @@ const redirectToOriginal = async (req, res) => {
       userDevice: userDevice,
     };
 
+    console.log("Click Data", clickData);
+
     const updatedLink = await Link.findOneAndUpdate(
       { shortURL },
       {

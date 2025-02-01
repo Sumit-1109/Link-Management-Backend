@@ -185,9 +185,8 @@ const getLinkAnalytics = async (req, res) => {
 
     let analyticsData = [];
 
-
-
     links.forEach((link) => {
+      console.log("Link Clicks" ,link.clicks)
       link.clicks.forEach((click) => {
         analyticsData.push({
           timestamp: new Date(click.timestamp).toLocaleString('en-IN', {
@@ -202,7 +201,7 @@ const getLinkAnalytics = async (req, res) => {
           shortURL: `${BASE_URL}/${link.shortURL}`, 
           ip: click.ip,
           device: click.device,
-          os: click.os,
+          userDevice: click.userDevice,
         });
       });
     });

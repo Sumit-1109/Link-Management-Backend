@@ -30,7 +30,7 @@ const LinkSchema = new mongoose.Schema({
         type: String,
         enum: ["Mobile", "Desktop", "Tablet"],
       },
-      os : {
+      userDevice : {
         type: String,
       },
       browser: {
