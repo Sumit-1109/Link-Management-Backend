@@ -32,7 +32,7 @@ const redirectToOriginal = async (req, res) => {
       ip: ip,
       timestamp: new Date(),
       device: device,
-      browser: browser,
+      os: os,
     };
 
     const updatedLink = await Link.findOneAndUpdate(
