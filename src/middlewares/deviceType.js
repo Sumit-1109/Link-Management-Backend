@@ -2,6 +2,8 @@ const device = require("express-device");
 const userAgent = require("express-useragent");
 
 const deviceType = (req, res, next) => {
+  const source = req.headers["user-agent"];
+  const userInfo = userAgent.parse(source);
 
   let device = "Unknown";
 
@@ -21,7 +23,13 @@ const deviceType = (req, res, next) => {
 
   const browser = req.useragent.browser || "Unknown";
 
-  req.clientInfo = {device, browser};
+  const ip = req.headers["x-forwarded-for"]
+    ? req.headers["x-forwarded-for"].split(",")[0].trim()
+    : req.ip;
+
+  const os = userInfo.os;
+
+  req.clientInfo = { device, browser, os, ip };
 
   next();
 };

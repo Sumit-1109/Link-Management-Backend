@@ -26,14 +26,13 @@ const redirectToOriginal = async (req, res) => {
       return res.status(410).json({ message: "This link is no more :(" });
     }
 
-    const deviceType = req.clientInfo.device;
-    const browserName = req.clientInfo.browser;
+    const {device, os, browser, ip} = req.clientInfo;
 
     const clickData = {
-      ip: req.ip,
+      ip: ip,
       timestamp: new Date(),
-      device: deviceType,
-      browser: browserName,
+      device: device,
+      browser: browser,
     };
 
     const updatedLink = await Link.findOneAndUpdate(

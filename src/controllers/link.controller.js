@@ -77,11 +77,25 @@ const createShortURL = async (req, res) => {
 };
 
 const getLinks = async (req, res) => {
-  try {
+  try {   
 
     const { q = "" ,page = 1, limit = 10, sortBy = "createdAt", order = "asc" } = req.query;
     const sortField = sortBy === 'status' ? "status" : "createdAt";
     const sortOrder = order === 'asc' ? 1 : -1;
+
+    await Link.updateMany(
+      { 
+        expirationDate: { 
+          $exists: true, 
+          $lt: new Date() 
+        }, 
+        status: "active" },
+      { 
+        $set: { 
+          status: "inactive" 
+        } 
+      }
+    ); 
 
     const query = q
       ? {
@@ -93,11 +107,7 @@ const getLinks = async (req, res) => {
         }
       : { createdBy: req.user.id };
 
-    const totalLinks = await Link.countDocuments({
-        createdBy : req.user.id
-    });
-
-  
+    const totalLinks = await Link.countDocuments(query);
 
     const links = await Link.find(query).
     sort({
@@ -112,24 +122,30 @@ const getLinks = async (req, res) => {
       return res.status(404).json({ message: "Oops!! Nothing to see" });
     }
 
-    const linkDetails = links.map((link) => ({
-      id: link._id,
-      createdAt: new Date(link.createdAt).toLocaleString('en-US', {
-        month: 'short',
-        day: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
-      originalURL: link.originalURL,
-      shortURL: `${BASE_URL}/${link.shortURL}`, 
-      remarks: link.remarks,
-      clicks: link.clicks.length,
-      status:
-        link.expirationDate && new Date() > link.expirationDate
-          ? "Inactive"
-          : "Active",
-    }));
+    const linkDetails = links.map((link) => {
+      const isExpired = link.expirationDate && new Date() > new Date(link.expirationDate);
+      return {
+        id: link._id,
+        createdAt: new Date(link.createdAt).toLocaleString('en-IN', {
+          timeZone: "Asia/Kolkata",
+          month: 'short',
+          day: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        originalURL: link.originalURL,
+        shortURL: `${BASE_URL}/${link.shortURL}`,
+        remarks: link.remarks,
+        clicks: link.clicks.length,
+        status: isExpired ? "Inactive" : "Active",
+        statusSortOrder: isExpired ? 1 : 0,
+      };
+    });
+
+    if (sortBy === "status") {
+      linkDetails.sort((a, b) => sortOrder * (a.statusSortOrder - b.statusSortOrder));
+    }
 
     return res.status(200).json({
       links: linkDetails,
@@ -172,7 +188,8 @@ const getLinkAnalytics = async (req, res) => {
     links.forEach((link) => {
       link.clicks.forEach((click) => {
         analyticsData.push({
-          timestamp: new Date(click.timestamp).toLocaleString('en-US', {
+          timestamp: new Date(click.timestamp).toLocaleString('en-IN', {
+            timeZone: "Asia/Kolkata",
             month: 'short',
             day: '2-digit',
             year: 'numeric',
